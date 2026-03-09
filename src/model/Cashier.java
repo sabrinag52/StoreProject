@@ -4,12 +4,14 @@ import java.util.Objects;
 public class Cashier {
 
     private static int totalReceipts = 0;
+    private static final Object counterLock = new Object();
+
     private static double totalRevenue = 0.0;
 
     private final int id;
     private String name;
     private double monthlySalary;
-    private int currentRegisterNumber = -1; // -1 means unassigned
+    private int currentRegisterNumber = -1;
     private int issuedReceipts = 0;
 
     public Cashier(int id, String name, double monthlySalary) {
@@ -21,6 +23,16 @@ public class Cashier {
         this.monthlySalary = monthlySalary;
     }
 
+    public static int getTotalReceipts() {
+        synchronized (counterLock) {
+            return totalReceipts;
+        }
+    }
+
+    public void incrementReceiptCount() {
+        issuedReceipts++;
+        totalReceipts++;
+    }
 
     // Getters and setters
     public int getId() { return id; }
@@ -44,11 +56,7 @@ public class Cashier {
     }
     public void unassignFromRegister() { this.currentRegisterNumber = -1; }
 
-    public void incrementReceiptCount() {
-        issuedReceipts++;
-        int totalReceiptsIssued = 0;
-        totalReceiptsIssued++;
-    }
+
 
     @Override
     public boolean equals(Object obj) {
@@ -68,10 +76,6 @@ public class Cashier {
                 id, name, monthlySalary,
                 (currentRegisterNumber > 0 ? currentRegisterNumber : "Unassigned"),
                 issuedReceipts);
-    }
-
-    public String getDisplayInfo() {
-        return String.format("Cashier: %s (ID: %d) - Salary: %.2f BGN/month", name, id, monthlySalary);
     }
 }
 

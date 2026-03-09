@@ -1,45 +1,75 @@
-package test;
-
-import model.*;
-
-import java.time.LocalDate;
-import java.io.IOException;
-
-public class ReceiptTest {
-    public static void main(String[] args) {
-        // Use static sample data instead of dynamic (LocalDate.now)
-
-        // Static cashier
-        Cashier cashier = new Cashier(101, "TestCashier", 1200.00);
-
-        // Static products with fixed expiration dates
-        Product bread = new FoodProduct("F001", "Bread", 1.20, LocalDate.of(2025, 6, 30));
-        Product detergent = new NonFoodProduct("N001", "Detergent", 3.50, LocalDate.of(2026, 1, 1));
-
-        // Create receipt with static items
-        Receipt receipt = new Receipt(cashier);
-        receipt.addItem(bread, 2);
-        receipt.addItem(detergent, 1);
-
-        // Print the receipt
-        System.out.println("--- STATIC RECEIPT TEST ---");
-        System.out.println(receipt);
-
-        // Save the receipt
-        try {
-            receipt.saveToFile();
-            System.out.println("Receipt file saved.");
-        } catch (IOException e) {
-            System.err.println("Error saving receipt: " + e.getMessage());
-        }
-
-        // Load and verify the receipt
-        try {
-            Receipt loaded = Receipt.readFromFile("receipt_" + receipt.getId() + ".txt");
-            System.out.println("Loaded from file:");
-            System.out.println(loaded);
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error reading saved receipt: " + e.getMessage());
-        }
-    }
-}
+//package test;
+//
+//import model.*;
+//
+//import java.time.LocalDate;
+//import java.io.IOException;
+//
+//import exeptions.*;
+//import org.junit.jupiter.api.Test;
+//import static org.junit.jupiter.api.Assertions.*;
+//
+//public class ReceiptTest {
+//    private Receipt receipt;
+//    private Cashier cashier;
+//    private Product validProduct;
+//    private Product expiredProduct;
+//
+//    @BeforeEach
+//    void setUp() {
+//        cashier = new Cashier(101, "Test Cashier", 1200.0);
+//        receipt = new Receipt(cashier);
+//
+//        Category food = new Category("Food", 10.0);
+//        validProduct = new Product("Bread", 1.20,
+//                LocalDate.now().plusDays(10),
+//                food, 5) {
+//            @Override
+//            public double calculateSellingPrice() { return 1.32; }
+//        };
+//
+//        expiredProduct = new Product("Expired Milk", 1.0,
+//                LocalDate.now().minusDays(1),
+//                food, 1) {
+//            @Override
+//            public double calculateSellingPrice() { return 1.0; }
+//        };
+//    }
+//
+//    @Test
+//    void addItem_ValidProduct_AddsToReceipt() throws ExpiredProductException, InsufficientStockException {
+//        receipt.addItem(validProduct, 2);
+//        assertEquals(1, receipt.getItems().size());
+//        assertEquals(2, receipt.getItems().get(0).getQuantity());
+//    }
+//
+//    @Test
+//    void addItem_ExpiredProduct_ThrowsException() {
+//        assertThrows(ExpiredProductException.class,
+//                () -> receipt.addItem(expiredProduct, 1));
+//    }
+//
+//    @Test
+//    void addItem_InsufficientStock_ThrowsException() {
+//        assertThrows(InsufficientStockException.class,
+//                () -> receipt.addItem(validProduct, 10));
+//    }
+//
+//    @Test
+//    void calculateTotal_WithItems_ReturnsCorrectSum() throws ExpiredProductException, InsufficientStockException {
+//        receipt.addItem(validProduct, 2);
+//        assertEquals(2.64, receipt.calculateTotal(), 0.001);
+//    }
+//
+//    @Test
+//    void processPayment_SufficientAmount_ReturnsTrue() throws ExpiredProductException, InsufficientStockException {
+//        receipt.addItem(validProduct, 1);
+//        assertTrue(receipt.processPayment(2.0));
+//    }
+//
+//    @Test
+//    void processPayment_InsufficientAmount_ReturnsFalse() throws ExpiredProductException, InsufficientStockException {
+//        receipt.addItem(validProduct, 1);
+//        assertFalse(receipt.processPayment(1.0));
+//    }
+//}

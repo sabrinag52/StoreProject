@@ -1,5 +1,8 @@
 package model;
 
+import exeptions.ExpiredProductException;
+import exeptions.InsufficientStockException;
+
 import  java.io.Serializable;
 
 public class ReceiptItem  implements Serializable{

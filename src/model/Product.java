@@ -1,4 +1,6 @@
 package model;
+import exeptions.InsufficientStockException;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -8,8 +10,9 @@ public abstract class Product {
     protected final double deliveryPrice;
     protected final LocalDate expiryDate;
     protected final Category category;
+    protected double quantity;
 
-    public Product(String name, double deliveryPrice, LocalDate expiryDate, Category category) {
+    public Product(String name, double deliveryPrice, LocalDate expiryDate, Category category, double quantity) {
         if (deliveryPrice <= 0) {
             throw new IllegalArgumentException("Delivery price must be positive.");
         }
@@ -22,6 +25,7 @@ public abstract class Product {
         this.deliveryPrice = deliveryPrice;
         this.expiryDate = expiryDate;
         this.category = category;
+        this.quantity = quantity;
     }
 
     public UUID getId() { return id; }
@@ -29,6 +33,21 @@ public abstract class Product {
     public double getDeliveryPrice() { return deliveryPrice; }
     public LocalDate getExpiryDate() { return expiryDate; }
     public Category getCategory() { return category; }
+    public double getQuantity(){return quantity; }
+
+    public void reduceQuantity(double amount) throws InsufficientStockException {
+        if(amount > quantity){
+            throw new InsufficientStockException(name, (int) amount, (int) quantity);
+        }
+        quantity -= amount;
+    }
+
+    public void addQuantity(double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        quantity += amount;
+    }
 
     public boolean isExpired() {
         return expiryDate.isBefore(LocalDate.now());
@@ -36,10 +55,10 @@ public abstract class Product {
 
     public abstract double calculateSellingPrice();
 
-    protected double applyExpiryDiscount(double discountDays, double discountPercent) {
+    public double applyExpiryDiscount(double discountDays, double discountPercent) {
         if (isExpired()) return 0.0;
         long daysUntilExpiry = LocalDate.now().until(expiryDate).getDays();
-        double originalPrice = calculateSellingPrice();
+        double originalPrice = deliveryPrice * (1 + category.markup() / 100);
 
         if (daysUntilExpiry <= discountDays) {
             return originalPrice * (1 - discountPercent / 100);

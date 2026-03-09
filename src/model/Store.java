@@ -1,6 +1,9 @@
 package model;
 
+import java.math.BigDecimal;
 import java.util.*;
+import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 public class Store {
     private final String name;
@@ -8,65 +11,137 @@ public class Store {
     private final Map<Integer, Cashier> cashiers;
     private final List<Receipt> receipts;
     private final Map<Category, List<Product>> categorizedProducts;
+    private final Map<Integer, Register> registers;
 
-    private double foodMarkupPercent = 30.0;
-    private double nonFoodMarkupPercent = 20.0;
+    private double foodMarkupPercent = 10.0;
+    private double nonFoodMarkupPercent = 5.0;
     private int expiryThresholdDays = 3;
     private double expiryDiscountPercent = 15.0;
 
     public Store(String name) {
         this.name = name;
+        this.registers = new HashMap<>();
         this.products = new HashMap<>();
         this.cashiers = new HashMap<>();
         this.receipts = new ArrayList<>();
         this.categorizedProducts = new HashMap<>();
     }
 
-    // Register a new product
+
+    public void addCashier(Cashier cashier) {
+        Objects.requireNonNull(cashier, "Cashier cannot be null");
+        if (cashiers.containsKey(cashier.getId())) {
+            throw new IllegalArgumentException("Cashier ID already exists");
+        }
+        cashiers.put(cashier.getId(), cashier);
+    }
+
+    public Optional<Cashier> getCashier(int id) {
+        return Optional.ofNullable(cashiers.get(id));
+    }
+
+    public void addReceipt(Receipt receipt) {
+        receipts.add(Objects.requireNonNull(receipt));
+    }
+
+    public List<Receipt> getReceipts() {
+        return Collections.unmodifiableList(receipts);
+    }
+
+
+    public void addRegister(int registerNumber) {
+        if (registerNumber <= 0) {
+            throw new IllegalArgumentException("Register number must be positive");
+        }
+        registers.putIfAbsent(registerNumber, new Register(registerNumber));
+    }
+
+    public void assignCashierToRegister(int cashierId, int registerNumber) {
+        Cashier cashier = getCashier(cashierId)
+                .orElseThrow(() -> new IllegalArgumentException("Cashier not found"));
+
+        Register register = registers.get(registerNumber);
+        if (register == null) {
+            throw new IllegalArgumentException("Register not found");
+        }
+
+        register.assignCashier(cashier);
+    }
+
+    public BigDecimal getTotalRevenue() {
+        return receipts.stream()
+                .map(r -> BigDecimal.valueOf(r.calculateTotal()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getProfit() {
+        return getTotalRevenue()
+                .subtract(getTotalDeliveryCost())
+                .subtract(getTotalSalaries());
+    }
+
+    public void setFoodMarkupPercent(double percent) {
+        validatePercentage(percent);
+        this.foodMarkupPercent = percent;
+    }
+
+    public void setExpiryDiscountPercent(double percent) {
+        validatePercentage(percent);
+        this.expiryDiscountPercent = percent;
+    }
+
+    private void validatePercentage(double percent) {
+        if (percent < 0 || percent > 100) {
+            throw new IllegalArgumentException("Percentage must be between 0-100");
+        }
+    }
+
     public void addProduct(Product product) {
-        products.put(product.getId().toString(), product);
+        Objects.requireNonNull(product, "Product cannot be null");
+        UUID productId = product.getId();
+
+//        products.put(productId, product);
         categorizedProducts
                 .computeIfAbsent(product.getCategory(), k -> new ArrayList<>())
                 .add(product);
     }
 
-    // Get a product by ID
-    public Product getProduct(String id) {return products.get(id);}
-
-    // Register a new cashier
-    public void addCashier(Cashier cashier) {
-        cashiers.put(cashier.getId(), cashier);
+    public List<Product> getAvailableProducts() {
+        return products.values().stream()
+                .filter(product -> !product.isExpired())
+                .filter(product -> product.getQuantity() > 0)
+                .collect(Collectors.toList());
     }
 
-    // Get a cashier by ID
-    public Cashier getCashier(int id) {
-        return cashiers.get(id);}
-
-    // Add a receipt
-    public void addReceipt(Receipt receipt) {
-        receipts.add(receipt);
+    public List<Cashier> getCashiers() {
+        return new ArrayList<>(cashiers.values());
     }
-    public List<Receipt> getReceipts() {return receipts;}
-    public double getTotalRevenue() {return receipts.stream().mapToDouble(Receipt::calculateTotal).sum();}
-    public double getTotalDeliveryCost() {return products.values().stream().mapToDouble(Product::getDeliveryPrice).sum();}
-    public double getTotalSalaries() {return cashiers.values().stream().mapToDouble(Cashier::getMonthlySalary).sum();}
-    public double getProfit() {return getTotalRevenue() - getTotalDeliveryCost() - getTotalSalaries();}
 
-    // Configurable settings
-    public void setFoodMarkupPercent(double percent) {this.foodMarkupPercent = percent;}
-    public void setNonFoodMarkupPercent(double percent) {this.nonFoodMarkupPercent = percent;}
-    public void setExpiryThresholdDays(int days) {this.expiryThresholdDays = days;}
-    public void setExpiryDiscountPercent(double percent) {this.expiryDiscountPercent = percent;}
+    public BigDecimal getTotalCosts() {
+        return getTotalDeliveryCost().add(getTotalSalaries());
+    }
 
-    public double getFoodMarkupPercent() {return foodMarkupPercent;}
-    public double getNonFoodMarkupPercent() {return nonFoodMarkupPercent;}
-    public int getExpiryThresholdDays() {return expiryThresholdDays;}
-    public double getExpiryDiscountPercent() {return expiryDiscountPercent;}
-    public Map<Category, List<Product>> getCategorizedProducts() {return categorizedProducts;}
+    public BigDecimal getTotalDeliveryCost() {
+        return products.values().stream()
+                .map(p -> BigDecimal.valueOf(p.getDeliveryPrice()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getTotalSalaries() {
+        return cashiers.values().stream()
+                .map(c -> BigDecimal.valueOf(c.getMonthlySalary()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public Optional<Register> getRegister(int registerNumber) {
+        return Optional.ofNullable(registers.get(registerNumber));
+    }
 
     @Override
     public String toString() {
-        return String.format("Store[name=%s, products=%d, cashiers=%d, receipts=%d]",
-                name, products.size(), cashiers.size(), receipts.size());
+        return String.format(
+                "Store[name=%s, products=%d, cashiers=%d, receipts=%d, registers=%d]",
+                name, products.size(), cashiers.size(), receipts.size(), registers.size()
+        );
     }
 }
